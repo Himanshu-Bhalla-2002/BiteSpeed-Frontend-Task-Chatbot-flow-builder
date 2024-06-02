@@ -1,4 +1,8 @@
 import { Handle, Position } from "reactflow";
+import WhatsappIcon from "../../src/assets/whatsapp_123.svg";
+
+// In your component
+<img src={WhatsappIcon} alt="WhatsApp icon" height={15} />;
 
 // Custom node with header and specific styling
 const CustomNode = ({ data }) => {
@@ -30,7 +34,7 @@ const CustomNode = ({ data }) => {
           {data.heading}
         </div>
         <div style={{ paddingRight: 15 }}>
-          <img src="whatsapp.svg" alt="whatsapp icon" height={15} />
+          <img src={WhatsappIcon} alt="whatsapp icon" height={15} />
         </div>
       </div>
       <div
