@@ -37,6 +37,11 @@ const FlowBuilder = () => {
   const onConnect = useCallback(
     (params) => {
       if (sourceHandles.includes(params.source)) {
+        setErrorMessage("This source handle is already connected.");
+        setMessageColor("redMessage");
+        setTimeout(() => {
+          setErrorMessage(null);
+        }, 5000);
         return;
       }
       setSourceHandles((handles) => [...handles, params.source]);
@@ -84,6 +89,24 @@ const FlowBuilder = () => {
   );
 
   const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+
+  const saveFlow = () => {
+    const totalNodes = reactFlowInstance.getNodes().length;
+    if (targetHandles.length !== totalNodes - 1) {
+      setErrorMessage("Cannot save Flow");
+      setMessageColor("redMessage");
+      setTimeout(() => {
+        setErrorMessage(null);
+      }, 5000);
+    } else {
+      setErrorMessage("Saved Flow");
+      setMessageColor("greenMessage");
+      setTimeout(() => {
+        setErrorMessage(null);
+      }, 5000);
+    }
+  };
+
   const onNodesDelete = useCallback(
     (deletedNodes) => {
       setNodes((nds) => nds.filter((node) => !deletedNodes.includes(node)));
@@ -122,22 +145,6 @@ const FlowBuilder = () => {
     },
     [setEdges]
   );
-  const saveFlow = () => {
-    const totalNodes = reactFlowInstance.getNodes().length;
-    if (targetHandles.length !== totalNodes - 1) {
-      setErrorMessage("Cannot save Flow");
-      setMessageColor("redMessage");
-      setTimeout(() => {
-        setErrorMessage(null);
-      }, 5000);
-    } else {
-      setErrorMessage("Saved Flow");
-      setMessageColor("greenMessage");
-      setTimeout(() => {
-        setErrorMessage(null);
-      }, 5000);
-    }
-  };
 
   return (
     <div className="app-container" style={{ width: "100vw", height: "100vh" }}>
