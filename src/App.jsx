@@ -5,7 +5,7 @@ import FlowBuilder from "./FlowBuilder";
 const AppLayout = () => {
   return (
     <>
-      <FlowBuilder />{" "}
+      <FlowBuilder />
     </>
   );
 };

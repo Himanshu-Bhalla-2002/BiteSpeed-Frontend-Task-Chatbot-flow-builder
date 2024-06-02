@@ -1,81 +1,152 @@
-// src/components/FlowBuilder.js
-import React, { useState } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import ReactFlow, {
+  ReactFlowProvider,
   addEdge,
-  Background,
-  Controls,
   useNodesState,
   useEdgesState,
-  Handle,
+  Controls,
+  Background,
 } from "reactflow";
-import SettingsPanel from "./components/SettingsPanel";
-import SaveButton from "./components/SaveButton";
-import NodesPanel from "./components/NodesPanel";
+import "reactflow/dist/style.css";
+import "../index.css";
+import Sidebar from "./components/Sidebar";
+import Topbar from "./components/Topbar";
+import CustomNode from "./components/CustomNode";
+import Notification from "./components/Notification";
+import UpdateNode from "./components/UpdateNode";
 
-const initialNodes = [
-  {
-    id: "1",
-    type: "textNode",
-    data: { label: "Text Node 1" },
-    position: { x: 250, y: 5 },
-  },
-];
-
-const initialEdges = [];
+let id = 0;
 
 const FlowBuilder = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [selectedNode, setSelectedNode] = useState(null);
+  const reactFlowWrapper = useRef(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const [nodeSelected, setNodeSelected] = useState(false);
+  const [changeNode, setChangeNode] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [messageColor, setMessageColor] = useState(null);
+  const [targetHandles, setTargetHandles] = useState([]);
+  const [sourceHandles, setSourceHandles] = useState([]);
 
-  const onConnect = (params) => setEdges((eds) => addEdge(params, eds));
-  const onNodeDragStop = (_, node) =>
-    setNodes((nds) => nds.map((n) => (n.id === node.id ? node : n)));
+  const update = useCallback((event, node) => {
+    setChangeNode(node);
+    setNodeSelected(true);
+  }, []);
 
-  const onNodeClick = (_, node) => setSelectedNode(node);
+  const onConnect = useCallback(
+    (params) => {
+      if (sourceHandles.includes(params.source)) {
+        return;
+      }
+      setSourceHandles((handles) => [...handles, params.source]);
+      setEdges((eds) =>
+        addEdge({ ...params, markerEnd: { type: "arrowclosed" } }, eds)
+      );
+      if (targetHandles.includes(params.target)) return;
+      setTargetHandles((handles) => [...handles, params.target]);
+    },
+    [setEdges, sourceHandles, targetHandles]
+  );
 
-  const handleTextChange = (id, value) => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === id
-          ? { ...node, data: { ...node.data, label: value } }
-          : node
-      )
-    );
+  const onDragOver = useCallback((event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const onDrop = useCallback(
+    (event) => {
+      event.preventDefault();
+
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const type = event.dataTransfer.getData("application/reactflow");
+
+      if (!type) {
+        return;
+      }
+
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      const newNode = {
+        id: `node_${id}`,
+        type: "custom",
+        position,
+        data: { heading: "Send Message", label: `text message ${id}` },
+      };
+
+      id++;
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [reactFlowInstance, setNodes]
+  );
+
+  const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+
+  const saveFlow = () => {
+    const totalNodes = reactFlowInstance.getNodes().length;
+    if (targetHandles.length !== totalNodes - 1) {
+      setErrorMessage("Cannot save Flow");
+      setMessageColor("redMessage");
+      setTimeout(() => {
+        setErrorMessage(null);
+      }, 5000);
+    } else {
+      setErrorMessage("Saved Flow");
+      setMessageColor("greenMessage");
+      setTimeout(() => {
+        setErrorMessage(null);
+      }, 5000);
+    }
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <NodesPanel />
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeDragStop={onNodeDragStop}
-        onNodeClick={onNodeClick}
-        nodeTypes={{ textNode: NodeComponent }}
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
-      {selectedNode && (
-        <SettingsPanel node={selectedNode} onTextChange={handleTextChange} />
-      )}
-      <SaveButton nodes={nodes} edges={edges} />
+    <div className="app-container" style={{ width: "100vw", height: "100vh" }}>
+      <ReactFlowProvider>
+        <div className="reactflow-wrapper" ref={reactFlowWrapper}>
+          <div className="topbar">
+            <Notification
+              errorMessage={errorMessage}
+              messageColor={messageColor}
+            />
+          </div>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onInit={setReactFlowInstance}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            fitView
+            nodeTypes={nodeTypes}
+            onNodeClick={update}
+          >
+            <Controls />
+            <Background />
+          </ReactFlow>
+        </div>
+        {nodeSelected ? (
+          <div className="sidebar">
+            <Topbar saveFlow={saveFlow} />
+            <UpdateNode
+              selectedNode={changeNode}
+              setNodeSelected={setNodeSelected}
+              setNodes={setNodes}
+            />
+          </div>
+        ) : (
+          <div className="sidebar">
+            <Topbar saveFlow={saveFlow} />
+            <Sidebar />
+          </div>
+        )}
+      </ReactFlowProvider>
     </div>
   );
 };
 
 export default FlowBuilder;
-
-const NodeComponent = ({ data }) => {
-  return (
-    <div style={{ padding: 10, border: "1px solid black" }}>
-      {data.label}
-      <Handle type="source" position="right" id="a" />
-      <Handle type="target" position="left" id="b" />
-    </div>
-  );
-};
