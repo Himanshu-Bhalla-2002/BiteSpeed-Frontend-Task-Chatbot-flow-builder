@@ -1,11 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import FlowBuilder from "./FlowBuilder";
 
 const AppLayout = () => {
   return (
     <>
-      <h1>Himanshu</h1>
-    </> 
+      <FlowBuilder />{" "}
+    </>
   );
 };
 
