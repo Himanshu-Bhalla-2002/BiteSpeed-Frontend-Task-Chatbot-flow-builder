@@ -84,7 +84,44 @@ const FlowBuilder = () => {
   );
 
   const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+  const onNodesDelete = useCallback(
+    (deletedNodes) => {
+      setNodes((nds) => nds.filter((node) => !deletedNodes.includes(node)));
+      setEdges((eds) =>
+        eds.filter(
+          (edge) =>
+            !deletedNodes.find((node) => node.id === edge.source) &&
+            !deletedNodes.find((node) => node.id === edge.target)
+        )
+      );
 
+      deletedNodes.forEach((node) => {
+        setSourceHandles((handles) =>
+          handles.filter((handle) => handle !== node.id)
+        );
+        setTargetHandles((handles) =>
+          handles.filter((handle) => handle !== node.id)
+        );
+      });
+    },
+    [setNodes, setEdges]
+  );
+
+  const onEdgesDelete = useCallback(
+    (deletedEdges) => {
+      setEdges((eds) => eds.filter((edge) => !deletedEdges.includes(edge)));
+
+      deletedEdges.forEach((edge) => {
+        setSourceHandles((handles) =>
+          handles.filter((handle) => handle !== edge.source)
+        );
+        setTargetHandles((handles) =>
+          handles.filter((handle) => handle !== edge.target)
+        );
+      });
+    },
+    [setEdges]
+  );
   const saveFlow = () => {
     const totalNodes = reactFlowInstance.getNodes().length;
     if (targetHandles.length !== totalNodes - 1) {
@@ -124,6 +161,8 @@ const FlowBuilder = () => {
             fitView
             nodeTypes={nodeTypes}
             onNodeClick={update}
+            onNodesDelete={onNodesDelete}
+            onEdgesDelete={onEdgesDelete}
           >
             <Controls />
             <Background />
